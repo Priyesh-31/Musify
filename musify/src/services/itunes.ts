@@ -10,6 +10,7 @@
 import type { Track, ItunesResponse, ItunesResult } from '@/types'
 
 const BASE = 'https://itunes.apple.com/search'
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000'
 
 function mapResult(r: ItunesResult): Track {
   return {
@@ -31,12 +32,23 @@ function mapResult(r: ItunesResult): Track {
  * @param limit — max results (1-200, default 20)
  */
 export async function searchItunes(term: string, limit = 20): Promise<Track[]> {
-  const url = `${BASE}?term=${encodeURIComponent(term)}&media=music&entity=song&limit=${limit}`
+  const backendUrl = `${API_BASE}/api/search?q=${encodeURIComponent(term)}&limit=${limit}`
   try {
-    const res = await fetch(url)
+    const backendRes = await fetch(backendUrl)
+    if (backendRes.ok) {
+      const payload = await backendRes.json() as { tracks?: Track[] }
+      return payload.tracks || []
+    }
+  } catch {
+    // Fall back to direct iTunes call for local-only development.
+  }
+
+  const itunesUrl = `${BASE}?term=${encodeURIComponent(term)}&media=music&entity=song&limit=${limit}`
+  try {
+    const res = await fetch(itunesUrl)
     const data: ItunesResponse = await res.json()
     return (data.results || [])
-      .filter(r => r.previewUrl)   // only tracks with playable previews
+      .filter(r => r.previewUrl)
       .map(mapResult)
   } catch {
     return []

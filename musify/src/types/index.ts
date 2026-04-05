@@ -40,8 +40,16 @@ export interface JamendoTrack {
   duration: number
 }
 
+// ─── Collection metadata ────────────────────────────────────
+export interface CollectionMeta {
+  title: string
+  subtitle?: string
+  icon?: string
+  emoji?: string
+}
+
 // ─── Player / App state ─────────────────────────────────────
-export type ViewId = 'home' | 'search' | 'charts' | 'liked' | 'recent'
+export type ViewId = 'home' | 'search' | 'charts' | 'liked' | 'recent' | 'collection'
 
 export interface PlayerState {
   currentTrack: Track | null

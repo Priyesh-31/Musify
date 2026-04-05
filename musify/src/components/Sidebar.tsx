@@ -17,7 +17,7 @@ const LIB = [
 ]
 
 export default function Sidebar() {
-  const { view, setView, likedTracks, showToast } = useAppStore()
+  const { view, setView, likedTracks, showToast, setCollection, setCollectionLoading } = useAppStore()
   const { playItem } = usePlayerStore()
   const likedCount = Object.keys(likedTracks).length
 
@@ -30,6 +30,15 @@ export default function Sidebar() {
     } else {
       showToast('Nothing found — try again')
     }
+  }
+
+  const openPlaylistCollection = async (name: string, query: string) => {
+    showToast(`Loading ${name}…`)
+    setCollectionLoading(true)
+    const tracks = await searchItunes(query, 25)
+    setCollectionLoading(false)
+    if (!tracks.length) { showToast('Nothing found'); return }
+    setCollection(tracks, { title: name, emoji: '🎵', subtitle: `${tracks.length} tracks` })
   }
 
   return (
@@ -78,7 +87,7 @@ export default function Sidebar() {
 
         <NavSection label="Playlists">
           {SIDEBAR_PLAYLISTS.map(p => (
-            <button key={p.name} className="nav-btn" onClick={() => loadAndPlay(p.query)}>
+            <button key={p.name} className="nav-btn" onClick={() => openPlaylistCollection(p.name, p.query)}>
               <span className="w-7 h-7 rounded-[6px] bg-s3 flex items-center justify-center text-sm flex-shrink-0">
                 {p.emoji}
               </span>

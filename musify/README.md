@@ -1,23 +1,60 @@
-# 🎵 Musify — React + TypeScript + Tailwind CSS
+# Musify - Full Stack Music App
 
-A production-grade music streaming web app with real song playback via the iTunes API.
+Musify now includes a full frontend + backend + PostgreSQL data layer.
 
 ---
 
-## ⚡ Quick Start (5 minutes)
+## Quick Start
 
-### 1. Install dependencies
+### 1. Frontend install
 ```bash
 cd musify
 npm install
 ```
 
-### 2. Start dev server
+### 2. Backend install
 ```bash
+cd backend
+npm install
+```
+
+### 3. Configure backend environment
+
+Copy `backend/.env.example` to `backend/.env` and set:
+
+- `DATABASE_URL` (PostgreSQL connection string)
+- `PORT` (default `4000`)
+- `FRONTEND_ORIGIN` (default `http://localhost:5173`)
+
+### 4. Create database tables
+
+```bash
+cd backend
+npm run prisma:generate
+npm run prisma:push
+```
+
+### 5. Configure frontend environment
+
+Copy `.env.example` to `.env` in the project root and set:
+
+- `VITE_API_BASE_URL=http://localhost:4000`
+
+### 6. Run backend + frontend
+
+Terminal 1:
+```bash
+cd backend
 npm run dev
 ```
 
-Open http://localhost:5173 — real songs will load immediately, no API key needed.
+Terminal 2:
+```bash
+cd ..
+npm run dev
+```
+
+Open `http://localhost:5173`.
 
 ---
 
@@ -66,7 +103,39 @@ musify/
 
 ---
 
-## 🎧 Song Sources — How to Add Your Own
+## What The Backend Adds
+
+- Persistent liked songs per device/user
+- Persistent recently played history
+- Playlist CRUD APIs
+- Recommendation endpoint seeded from user likes
+- Search/charts proxied through backend
+
+## Frontend-Backend Connection
+
+- Frontend calls backend through `VITE_API_BASE_URL`
+- Device session is initialized by `src/services/libraryApi.ts`
+- `src/store/index.ts` hydrates likes and recents from `/api/library`
+- Likes are synced to `/api/library/likes`
+- Recent plays are synced to `/api/library/recents`
+
+## Backend API Summary
+
+- `GET /health`
+- `GET /api/search?q=...&limit=...`
+- `GET /api/search/charts?genre=...&limit=...`
+- `POST /api/library/init`
+- `GET /api/library?deviceId=...`
+- `POST /api/library/likes`
+- `DELETE /api/library/likes/:trackId?deviceId=...`
+- `POST /api/library/recents`
+- `GET /api/playlists?deviceId=...`
+- `POST /api/playlists`
+- `POST /api/playlists/:playlistId/tracks`
+- `DELETE /api/playlists/:playlistId/tracks/:trackId?deviceId=...`
+- `GET /api/recommendations?deviceId=...`
+
+## Optional Song Sources
 
 ### Option A: iTunes API (already working, no key needed)
 - Returns **30-second previews** of any song

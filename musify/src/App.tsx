@@ -7,11 +7,17 @@ import Toast from '@/components/Toast'
 import HomeView from '@/views/HomeView'
 import SearchView from '@/views/SearchView'
 import ChartsView from '@/views/ChartsView'
+import CollectionView from '@/views/CollectionView'
 import { LikedView, RecentView } from '@/views/LibraryViews'
 
 export default function App() {
   const view = useAppStore(s => s.view)
+  const hydrateLibrary = useAppStore(s => s.hydrateLibrary)
   useKeyboard()
+
+  useEffect(() => {
+    hydrateLibrary()
+  }, [hydrateLibrary])
 
   return (
     <div className="h-screen overflow-hidden"
@@ -28,11 +34,12 @@ export default function App() {
         className="overflow-y-auto overflow-x-hidden bg-bg"
         style={{ gridArea: '1/2/2/3' }}
       >
-        {view === 'home'   && <HomeView />}
-        {view === 'search' && <SearchView />}
-        {view === 'charts' && <ChartsView />}
-        {view === 'liked'  && <LikedView />}
-        {view === 'recent' && <RecentView />}
+        {view === 'home'       && <HomeView />}
+        {view === 'search'     && <SearchView />}
+        {view === 'charts'     && <ChartsView />}
+        {view === 'liked'      && <LikedView />}
+        {view === 'recent'     && <RecentView />}
+        {view === 'collection' && <CollectionView />}
       </main>
 
       {/* Player */}

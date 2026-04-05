@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String      @id @default(cuid())
+  deviceId   String      @unique
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  likes      UserLike[]
+  recents    UserRecent[]
+  playlists  Playlist[]
+}
+
+model TrackCache {
+  id          String      @id
+  title       String
+  artist      String
+  album       String
+  art         String
+  preview     String
+  duration    Int
+  genre       String?
+  source      String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  likes       UserLike[]
+  recents     UserRecent[]
+  playlistMap PlaylistTrack[]
+}
+
+model UserLike {
+  userId    String
+  trackId   String
+  createdAt DateTime @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  track     TrackCache @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+  @@id([userId, trackId])
+  @@index([trackId])
+}
+
+model UserRecent {
+  id        String    @id @default(cuid())
+  userId    String
+  trackId   String
+  playedAt  DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  track     TrackCache @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+  @@index([userId, playedAt(sort: Desc)])
+}
+
+model Playlist {
+  id          String         @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tracks      PlaylistTrack[]
+
+  @@index([userId])
+}
+
+model PlaylistTrack {
+  playlistId  String
+  trackId     String
+  position    Int
+  addedAt     DateTime   @default(now())
+  playlist    Playlist   @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  track       TrackCache @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+  @@id([playlistId, trackId])
+  @@unique([playlistId, position])
+}

@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react'
 import { usePlayerStore, useAppStore } from '@/store'
 import { searchItunes } from '@/services/itunes'
 import TrackList from '@/components/TrackList'
-import { CardRow, CardGrid } from '@/components/CardGrid'
 import { MOODS, FEATURED_ARTISTS, MADE_FOR_YOU } from '@/data/static'
 import type { Track } from '@/types'
 import clsx from 'clsx'
@@ -16,8 +15,8 @@ const TREND_GENRES = [
 ]
 
 export default function HomeView() {
-  const { playItem, setQueue } = usePlayerStore()
-  const { showToast, setView } = useAppStore()
+  const { playItem } = usePlayerStore()
+  const { showToast, setView, setCollection, setCollectionLoading } = useAppStore()
 
   const [trendGenre, setTrendGenre] = useState(TREND_GENRES[0])
   const [trendTracks, setTrendTracks]   = useState<Track[]>([])
@@ -55,6 +54,16 @@ export default function HomeView() {
     if (val.trim().length < 2) return
     const t = setTimeout(() => setView('search'), 600)
     setLiveTimer(t)
+  }
+
+  // Open collection view for moods, artists, etc.
+  const openCollection = async (title: string, meta: { title: string; emoji?: string; subtitle?: string }, query: string) => {
+    showToast(`Loading ${title}…`)
+    setCollectionLoading(true)
+    const tracks = await searchItunes(query, 20)
+    setCollectionLoading(false)
+    if (!tracks.length) { showToast('Nothing found'); return }
+    setCollection(tracks, meta)
   }
 
   const loadPlay = async (query: string) => {
@@ -129,21 +138,21 @@ export default function HomeView() {
           <div className="grid grid-cols-3 gap-2">
             {MOODS.map(m => (
               <div key={m.name} className="mood-card" style={{ background: m.color }}
-                onClick={() => loadPlay(m.query)}>
+                onClick={() => openCollection(m.name, { title: m.name, emoji: m.emoji, subtitle: `${m.name} vibes` }, m.query)}>
                 <span className="text-[22px] block mb-[6px]">{m.emoji}</span>
                 <div className="text-[12px] font-semibold text-tx">{m.name}</div>
-                <div className="text-[10px] text-white/35 mt-[1px]">Tap to play</div>
+                <div className="text-[10px] text-white/35 mt-[1px]">Tap to explore</div>
               </div>
             ))}
           </div>
         </Section>
 
         {/* ARTISTS */}
-        <Section title="Featured Artists" onMore={() => loadPlay('pop top hits')}>
+        <Section title="Featured Artists" onMore={() => openCollection('Featured Artists', { title: 'Featured Artists', emoji: '🎤' }, 'pop hits')}>
           <div className="flex gap-[14px] overflow-x-auto pb-2" style={{ scrollbarWidth: 'none' }}>
             {FEATURED_ARTISTS.map(a => (
               <div key={a.name} className="flex-shrink-0 text-center cursor-pointer group/art"
-                onClick={() => loadPlay(a.query)}>
+                onClick={() => openCollection(a.name, { title: a.name, emoji: a.emoji, subtitle: a.genre }, a.query)}>
                 <div className="w-[64px] h-[64px] rounded-full mx-auto mb-[6px] bg-s3 border-2 border-transparent group-hover/art:border-accent transition-all duration-200 flex items-center justify-center text-[24px]">
                   {a.emoji}
                 </div>
@@ -169,23 +178,43 @@ export default function HomeView() {
         </Section>
 
         {/* NEW RELEASES */}
-        <Section title="New Releases" onMore={() => searchItunes('new music 2024', 10)}>
-          <CardRow tracks={newTracks} loading={newLoading} />
+        <Section title="New Releases" onMore={() => openCollection('New Releases', { title: 'New Releases', emoji: '📡', subtitle: 'Fresh drops' }, 'new music 2024')}>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            {newTracks.slice(0, 6).map(track => (
+              <div
+                key={track.id}
+                className="group cursor-pointer"
+                onClick={() => {
+                  const { playItem } = usePlayerStore.getState()
+                  playItem(track, newTracks)
+                }}
+              >
+                <div className="aspect-square rounded-lg overflow-hidden bg-s2 mb-2 relative">
+                  <img src={track.art} alt={track.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                  <button className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition-all opacity-0 group-hover:opacity-100">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" className="text-white"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  </button>
+                </div>
+                <p className="text-[12px] font-semibold text-tx truncate">{track.title}</p>
+                <p className="text-[11px] text-tx3 truncate">{track.artist}</p>
+              </div>
+            ))}
+          </div>
         </Section>
 
         {/* MADE FOR YOU */}
         <Section title="Made for You">
-          <CardGrid
-            tracks={MADE_FOR_YOU.map((m, i) => ({
-              id: `mfy-${i}`, title: m.name, artist: m.desc,
-              album: '', art: '', preview: '', duration: 0, source: 'local' as const,
-            }))}
-            cols="grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6"
-          />
-          {/* Overlay MFY tiles with click handlers */}
-          <div className="sr-only">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-4">
             {MADE_FOR_YOU.map(m => (
-              <button key={m.name} onClick={() => loadPlay(m.query)}>{m.name}</button>
+              <button
+                key={m.name}
+                onClick={() => openCollection(m.name, { title: m.name, emoji: m.emoji, subtitle: m.desc }, m.query)}
+                className="flex flex-col items-center gap-2 p-4 rounded-lg bg-s2 border border-white/10 hover:border-accent hover:bg-s3 transition-all group cursor-pointer"
+              >
+                <div className="text-[28px]">{m.emoji}</div>
+                <div className="text-[12px] font-semibold text-tx text-center">{m.name}</div>
+                <div className="text-[10px] text-tx3 text-center">{m.desc}</div>
+              </button>
             ))}
           </div>
         </Section>

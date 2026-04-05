@@ -1,5 +1,11 @@
 import { create } from 'zustand'
-import type { Track, ViewId } from '@/types'
+import type { Track, ViewId, CollectionMeta } from '@/types'
+import {
+  addRecent,
+  fetchLibraryState,
+  persistLike,
+  removeLike,
+} from '@/services/libraryApi'
 
 // ─── Audio singleton ─────────────────────────────────────────
 export const audioEl = new Audio()
@@ -128,27 +134,44 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
 
 // ─── App Store ───────────────────────────────────────────────
 interface AppStore {
-  view:          ViewId
-  likedTracks:   Record<string | number, Track>
-  recentTracks:  Track[]
-  toast:         string | null
-  toastTimer:    ReturnType<typeof setTimeout> | null
+  view:              ViewId
+  likedTracks:       Record<string | number, Track>
+  recentTracks:      Track[]
+  collectionTracks:  Track[]
+  collectionMeta:    CollectionMeta | null
+  collectionLoading: boolean
+  toast:             string | null
+  toastTimer:        ReturnType<typeof setTimeout> | null
 
-  setView:        (v: ViewId) => void
-  toggleLike:     (track: Track) => void
-  isLiked:        (id: string | number) => boolean
-  addToRecent:    (track: Track) => void
-  showToast:      (msg: string) => void
+  setView:           (v: ViewId) => void
+  setCollection:     (tracks: Track[], meta: CollectionMeta) => void
+  setCollectionLoading: (loading: boolean) => void
+  toggleLike:        (track: Track) => void
+  isLiked:           (id: string | number) => boolean
+  addToRecent:       (track: Track) => void
+  hydrateLibrary:    () => Promise<void>
+  showToast:         (msg: string) => void
 }
 
 export const useAppStore = create<AppStore>((set, get) => ({
-  view:         'home',
-  likedTracks:  {},
-  recentTracks: [],
-  toast:        null,
-  toastTimer:   null,
+  view:              'home',
+  likedTracks:       {},
+  recentTracks:      [],
+  collectionTracks:  [],
+  collectionMeta:    null,
+  collectionLoading: false,
+  toast:             null,
+  toastTimer:        null,
 
   setView: (v) => set({ view: v }),
+
+  setCollection: (tracks, meta) => {
+    set({ collectionTracks: tracks, collectionMeta: meta, view: 'collection' })
+  },
+
+  setCollectionLoading: (loading) => {
+    set({ collectionLoading: loading })
+  },
 
   toggleLike: (track) => {
     const { likedTracks, showToast } = get()
@@ -157,9 +180,15 @@ export const useAppStore = create<AppStore>((set, get) => ({
       delete next[track.id]
       set({ likedTracks: next })
       showToast('Removed from Liked Songs')
+      removeLike(track.id).catch(() => {
+        // Backend might be offline; local UX still works.
+      })
     } else {
       set({ likedTracks: { ...likedTracks, [track.id]: track } })
       showToast('Added to Liked Songs ♥')
+      persistLike(track).catch(() => {
+        // Backend might be offline; local UX still works.
+      })
     }
   },
 
@@ -168,6 +197,26 @@ export const useAppStore = create<AppStore>((set, get) => ({
   addToRecent: (track) => {
     const prev = get().recentTracks.filter(t => t.id !== track.id)
     set({ recentTracks: [track, ...prev].slice(0, 50) })
+    addRecent(track).catch(() => {
+      // Backend might be offline; local UX still works.
+    })
+  },
+
+  hydrateLibrary: async () => {
+    try {
+      const data = await fetchLibraryState()
+      const liked = data.likes.reduce<Record<string | number, Track>>((acc, t) => {
+        acc[t.id] = t
+        return acc
+      }, {})
+
+      set({
+        likedTracks: liked,
+        recentTracks: data.recents,
+      })
+    } catch {
+      // Keep local state when backend is unavailable.
+    }
   },
 
   showToast: (msg) => {
