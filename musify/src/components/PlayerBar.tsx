@@ -27,7 +27,7 @@ export default function PlayerBar() {
   })
 
   return (
-    <div className="flex items-center px-6 gap-4 h-full bg-s1 border-t border-white/[0.06] z-50">
+    <div className="flex items-center px-6 gap-4 h-full bg-s1 border-t border-white/[0.06] z-50 w-full overflow-visible">
 
       {/* ── LEFT: Now playing ─────────────────────── */}
       <div className="flex-1 flex items-center gap-3 min-w-0">

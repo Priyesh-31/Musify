@@ -20,35 +20,37 @@ export default function App() {
   }, [hydrateLibrary])
 
   return (
-    <div className="h-screen overflow-hidden"
-      style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gridTemplateRows: '1fr 86px' }}>
+    <div className="w-screen h-screen overflow-hidden flex flex-col">
+      <div className="flex flex-1 overflow-hidden">
+        
+        {/* Sidebar */}
+        <div className="w-[240px] flex-shrink-0 overflow-y-auto">
+          <Sidebar />
+        </div>
 
-      {/* Sidebar */}
-      <div style={{ gridArea: '1/1/2/2' }}>
-        <Sidebar />
+        {/* Main scrollable content */}
+        <main
+          id="main-scroll"
+          className="flex-1 overflow-y-auto overflow-x-hidden bg-bg"
+        >
+          {view === 'home'       && <HomeView />}
+          {view === 'search'     && <SearchView />}
+          {view === 'charts'     && <ChartsView />}
+          {view === 'liked'      && <LikedView />}
+          {view === 'recent'     && <RecentView />}
+          {view === 'collection' && <CollectionView />}
+        </main>
       </div>
 
-      {/* Main scrollable content */}
-      <main
-        id="main-scroll"
-        className="overflow-y-auto overflow-x-hidden bg-bg"
-        style={{ gridArea: '1/2/2/3' }}
-      >
-        {view === 'home'       && <HomeView />}
-        {view === 'search'     && <SearchView />}
-        {view === 'charts'     && <ChartsView />}
-        {view === 'liked'      && <LikedView />}
-        {view === 'recent'     && <RecentView />}
-        {view === 'collection' && <CollectionView />}
-      </main>
-
-      {/* Player */}
-      <div style={{ gridArea: '2/1/3/3' }}>
+      {/* Player - fixed at bottom */}
+      <div className="h-[86px] flex-shrink-0 border-t border-white/[0.06]">
         <PlayerBar />
       </div>
 
-      {/* Toast */}
-      <Toast />
+      {/* Toast - positioned absolutely */}
+      <div style={{ position: 'fixed', bottom: '100px', right: '20px', zIndex: 9999 }}>
+        <Toast />
+      </div>
     </div>
   )
 }
